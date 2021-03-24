@@ -8,7 +8,9 @@
 # - Base Address for Display: 0x10008000 ($gp)
 # - 32 units per row = 128 bytes
 .data
-	displayAddress:	.word	0x10008000 # 268468224 in decimal
+	displayAddressStart:	.word	0x10008000 # 268468224 in decimal
+	displayAddressEnd: 	.word   0x10009000 # the end of display
+	
 	
 	# note that each step will take up 4 units = 16 bytes since each unit is 4 bytes 
 	steponeAddress : .word  0x10008180 # 268468724 in decimal
@@ -16,54 +18,31 @@
 	stepthreeAddress: .word 0x10008F40 # 268468104 in decxmal
 	
 .text
-	lw $s0, displayAddress	# $t0 stores the base address for display
 	li $s1, 0xff0000	# $t1 stores the red colour code
 	li $s2, 0x00ff00	# $t2 stores the green colour code
-	
-	# This is the start address of the bitmap and the end address 
-	add $s4, $0, $s0 
-	addi $s5, $s0 4096	
-	
+		
 	# each step
-	lw $s6, steponeAddress
-	lw $s7 steptwoAddress
-	lw $s3 stepthreeAddress
+	lw $s3, steponeAddress
+	lw $s4 steptwoAddress
+	lw $s5 stepthreeAddress
 		
 	
 main:
-	
-	# Gives us the bounds for each "step"
-	
-	
+	lw $t0, displayAddressStart # temp vars so that we can paint entire bitmap
+	lw $t1, displayAddressEnd
+		
 # need to intialize the background for the map 
 repaint:
-	beq, $s4, $s5, generate_steps
-	sw $s1, 0($s4)
-	addi $s4, $s4, 4
+	
+	beq, $t0, $t1, generate_doodle_and_steps
+	sw $s1, 0($t0)
+	addi $t0, $t0, 4
 	j repaint
 
-	
-generate_steps:
-	# top step
-	sw $s2, 0($s6)
-	sw $s2, 4($s6)
-	sw $s2, 8($s6)
-	sw $s2, 12($s6)
-	sw $s2, 16($s6)
-	sw $s2, 20($s6)
-	sw $s2, 24($s6)
-	
-	# second step
-	sw $s2, 0($s7)
-	sw $s2, 4($s7)
-	sw $s2, 8($s7)
-	sw $s2, 12($s7)
-	sw $s2, 16($s7)
-	sw $s2, 20($s7)
-	sw $s2, 24($s7)
-	
-	
-	# third step
+
+generate_doodle_and_steps:
+
+	# fist step
 	sw $s2, 0($s3)
 	sw $s2, 4($s3)
 	sw $s2, 8($s3)
@@ -72,8 +51,29 @@ generate_steps:
 	sw $s2, 20($s3)
 	sw $s2, 24($s3)
 	
+	# second step
+	sw $s2, 0($s4)
+	sw $s2, 4($s4)
+	sw $s2, 8($s4)
+	sw $s2, 12($s4)
+	sw $s2, 16($s4)
+	sw $s2, 20($s4)
+	sw $s2, 24($s4)
 	
-
+	
+	# third step
+	sw $s2, 0($s5)
+	sw $s2, 4($s5)
+	sw $s2, 8($s5)
+	sw $s2, 12($s5)
+	sw $s2, 16($s5)
+	sw $s2, 20($s5)
+	sw $s2, 24($s5)
+	
+	#doodle
+	
+	
+	
 	# need to generate 2 random numbers from  0 - 40 and 0 - 128. this will give us the location of the new step
 	# the bottom step we will erase and the other 2 steps we will shift down always by the same amount
 	
