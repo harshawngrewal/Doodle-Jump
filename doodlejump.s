@@ -12,13 +12,15 @@
 	displayAddressStart:	.word	0x10008000 # 268468224 in decimal
 	displayAddressEnd: 	.word   0x10009000 # the end of display
 	
-	
 	# note that each step will take up 4 units = 16 bytes since each unit is 4 bytes 
 	stepsArray:	.word  0x10008180, 0x10008820, 0x10008F40
 	
 	# this will hold the contents of the character in our game
 	personArray: 	.word 0x10008E40, 0x10008DC0, 0x10008DC4, 0x10008DC8, 0x10008D48, 0x10008DCC, 0x10008DD0, 0x10008E50
-			
+	
+	# this hold the addresses that keep information of keyboard events
+	keyboardEvent:	.word 0xffff0000
+	keyClicked:	.word 0xffff0004	
 	
 .text
 	li $s1, 0xff0000	# $t1 stores the red colour code
@@ -31,7 +33,6 @@ main_loop:
 	
 	jal repaint
 	
-	
 	add $t0, $zero, $zero # Will act as pointer to our array
 	addi $t1, $zero, 32 # will let us know the end pointer in our array
 	la $t2, personArray
@@ -42,8 +43,29 @@ main_loop:
 	la $t2, stepsArray
 	jal generate_steps
 	
+	jal checkUserInput
 	
 	j Exit
+	
+		
+checkUserInput:
+	# going to check for input
+	li $t1, 97
+	li $t2, 98
+	
+	lw $t0, keyboardEvent
+	lw $t0, 0($t0) # get's the value at the address
+	beq $t0, $zero, checkUserInput # no input so we keep checking
+	
+	lw $t0, keyClicked
+	lw $t0, 0($t0) # gives us the ASCII value of the key pressed  
+	beq $t0, $t1, return
+	beq $t0, $t2, return
+	j checkUserInput
+
+return:
+	jr $ra
+	
 		
 # need to intialize the background for the map 
 repaint:
@@ -56,8 +78,8 @@ repaint:
 generate_character:
 	#blip our character icon
 	add $t3, $t2, $t0 # current pointer at A[i], Not the value
-	lw $t4, 0($t3) # stores actualy value from the pointer
-	sw $s2, 0($t4)
+	lw $t4, 0($t3) # stores actualy value from the pointer. Value itself is an address
+	sw $s2, 0($t4) # now this offset the address so that we can store something there 
 	addi $t0, $t0, 4
 	bne $t0, $t1, generate_character
 	jr $ra			
@@ -80,33 +102,11 @@ generate_steps:
 	bne $t0, $t1, generate_steps
 	jr $ra
 		
-	# need to generate 2 random numbers from  0 - 40 and 0 - 128. this will give us the location of the new step
-	# the bottom step we will erase and the other 2 steps we will shift down always by the same amount
-	
-	li $v0, 42  # generate a random number
-	li $a1, 40  #random num between 0 and 40
-    	syscall # will store the random number in a0
-    	
-    	move $t0, $a1 # store the random number in a temp register
-    	
-    	li $v0, 42  # generate a random number
-	li $a1, 128  #random num between 0 and 40
-    	syscall # will store the random number in a0
-    	
-    	move $t0, $a0 # store the random number in a temp register
-    	
-    	li $v0, 1  # generate a random number
-	li $a1, 128  #random num between 0 and 128 
-    	syscall # will store the random number in a0
-    	
-    	move $t1, $a0 # store the random number in a temp register
-    	
-    	#now that we have a new step, we update our bitmap and shift the other two
-    	# this needs to be modified later so that 
     	jr $ra
     	
-
     	 
 Exit:
 	li $v0, 10 # terminate the program gracefully
 	syscall
+	
+
