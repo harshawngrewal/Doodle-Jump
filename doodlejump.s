@@ -1,5 +1,4 @@
-# Demo for painting
-#
+
 # Bitmap Display Configuration:
 # - Unit width in pixels: 8					     
 # - Unit height in pixels: 8
@@ -28,38 +27,33 @@
 	li $s2, 0xffffff	# $t2 stores the green colour code
 		
 	
-main_loop:
-	# we are only going to call this if our
-	add $t0, $zero, 2
+main:
+	# this part is just for the intial set up of our screen
+	# set the sleep time(keep it low)
+	add $t0, $zero, 50
 	sw $t0, sleep_time
 
 	lw $t0, displayAddressStart # temp vars so that we can paint entire bitmap
 	lw $t1, displayAddressEnd
-	jal repaint
+	jal paint_background
 	
 	add $t0, $zero, $zero # Will act as pointer to our array
-	addi $t1, $zero, 12 # will let us know the end pointer in our array
+	addi $t1, $zero, 12 # Will let us know the end pointer in our array
 	la $t2, stepsArray # pointer to the array(we are loading in the address)
 	jal generate_steps
-	
 	
 	add $t0, $zero, $zero # Will act as pointer to our array
 	addi $t1, $zero, 32 # will let us know the end pointer in our array
 	la $t2, personArray
 	
-	jal blip_character # we will not return to this function now until we NEED to repaint ENTIRE screen
+	j game_loop
 
-	add $t0, $zero, 500
-	sw $t0, sleep_time
-	jal sleep
-	j main_loop
-	j Exit
 	
 # need to intialize the background for the map 
-repaint:
+paint_background:
 	sw $s1, 0($t0)
 	addi $t0, $t0, 4
-	bne $t0, $t1 repaint
+	bne $t0, $t1 paint_background
 
 	jr $ra  # will return to the current instruction in main
 
@@ -78,54 +72,56 @@ generate_steps:
 	sw $s2, 16($t4)
 	sw $s2, 20($t4)
 	sw $s2, 24($t4)
-	
+
 	addi $t0, $t0, 4
-	
-	addi $sp, $sp, -4
-	sw $ra, 0($sp) # need to keep the previous parent pointer
-	jal sleep
-	
-	lw $ra, 0($sp) # restore the previous parent pointer
-	addi $sp, $sp, 4
-	
 	bne $t0, $t1, generate_steps
 	jr $ra 
 
 		
-blip_character:
+game_loop:
 
-	#blip our character icon
-	add $t3, $t2, $t0 # current pointer at A[i], Not the value
-	lw $t4, 0($t3) # stores actualy value from the pointer. Value itself is an address
-	sw $s2, 0($t4) # now this offset the address so that we can store something there 
-	addi $t0, $t0, 4
+	jal blip_character
 	
 	addi $sp, $sp, -4
 	sw $ra, 0($sp) # need to keep the previous parent pointer
 	jal sleep
 	lw $ra, 0($sp) # restore the previous parent pointer
 	addi $sp, $sp, 4
-	
-	bne $t0, $t1, blip_character
 	
 	
 	add $t0, $zero, $zero # Will act as pointer to our array
 	addi $sp, $sp, -4
 	sw $ra, 0($sp) # need to keep the previous parent pointer
 	jal erase_doodle
-	
 	lw $ra, 0($sp) # restore the previous parent pointer
 	addi $sp, $sp, 4
+	
+	
 	jal checkUserInput
 	
-	
+	# after we have shifted right we need to also shift up or down (occilate the doodle)
 	add $t0, $zero, $zero # Will act as pointer to our array
 	addi $t1, $zero, 32 # will let us know the end pointer in our array
 	la $t2, personArray
-	j blip_character
 	
+	# our character is always ocilating up and down, we take care of that here
+	jal shift_auto
+	
+	# if our character is at a certain location we might need to shift our platforms so we need to account for that
+	
+	jal sleep
+	j game_loop
 	jr $ra
 
+blip_character:
+	#blip our character icon
+	add $t3, $t2, $t0 # current pointer at A[i], Not the value
+	lw $t4, 0($t3) # stores actualy value from the pointer. Value itself is an address
+	sw $s2, 0($t4) # now this offset the address so that we can store something there 
+	addi $t0, $t0, 4
+	
+	bne $t0, $t1, blip_character
+	jr $ra # return back to the game loop
 
 erase_doodle:
 	add $t3, $t2, $t0 # current pointer at A[i], Not the value
@@ -135,15 +131,14 @@ erase_doodle:
 	
 	addi $sp, $sp, -4
 	sw $ra, 0($sp) # need to keep the previous parent pointer
-	jal sleep
+	#jal sleep
 	lw $ra, 0($sp) # restore the previous parent pointer
 	addi $sp, $sp, 4
-	
-	bne $t0, $t1, erase_doodle
-	
-	jr $ra
 
 	
+	bne $t0, $t1, erase_doodle
+	jr $ra
+
 	
 checkUserInput:
 	# going to check for input
@@ -178,18 +173,10 @@ shift_Left:
 	# need to shift every single elememt in personArray by a certain amount of units 
 	add $t6, $t5, $t3 # current pointer at A[i], Not the value
 	lw $t7, 0($t6) # load address A[i]
-	
 	addi $t7, $t7 -4 # prob gonna have to handle  the case where the character cannot move right
-	
 	sw $t7, 0($t6) # update value in the array
 	addi $t3, $t3, 4
-	
-	addi $sp, $sp, -4
-	sw $ra, 0($sp) # need to keep the previous parent pointer
-	jal sleep
-	lw $ra, 0($sp) # restore the previous parent pointer
-	addi $sp, $sp, 4
-	
+
 	bne $t3, $t4, shift_Left
 	
 	sw $zero, 0($s3) # need to reset the value at the keyboadEvent address
@@ -197,30 +184,23 @@ shift_Left:
 	
 
 shift_Right:
-	
 	# need to shift every single elememt in personArray by a certain amount of units 
 	add $t6, $t5, $t3 # current pointer at A[i], Not the value
 	lw $t7, 0($t6) # load address A[i]
-	
 	addi $t7, $t7 4 # prob gonna have to handle  the case where the character cannot move right
-	
 	sw $t7, 0($t6) # update value in the array
 	addi $t3, $t3, 4
-	
-	addi $sp, $sp, -4
-	sw $ra, 0($sp) # need to keep the previous parent pointer
-	jal sleep
-	lw $ra, 0($sp) # restore the previous parent pointer
-	addi $sp, $sp, 4
 	
 	bne $t3, $t4, shift_Right
 	
 	sw $zero, 0($s3) # need to reset the value at the keyboadEvent address
 	jr $ra	
-			
+
+shift_auto:
+	jr $ra 				
  
- sleep:
- 	# sleep to control the animations
+sleep:
+	# sleep to control the animations
  	li $v0, 32 # the sleep syscall
  	lw $a0, sleep_time
  	syscall
@@ -229,7 +209,4 @@ shift_Right:
  		 	 
 Exit:
 	li $v0, 10 # terminate the program gracefully
-	syscall
-	
-
-
+	syscall	
