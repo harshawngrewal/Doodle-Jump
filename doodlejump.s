@@ -11,6 +11,9 @@
 	displayAddressStart:	.word	0x10008000 # 268468224 in decimal
 	displayAddressEnd: 	.word   0x10009000 # the end of display
 	
+	highest_doodle_location: .word	0x10008280 # 268468224 in decimal
+	lowest_doodle_location:  .word  0x10009000
+	
 	# note that each step will take up 4 units = 16 bytes since each unit is 4 bytes 
 	stepsArray:	.word  0x10008180, 0x10008820, 0x10008F40
 	
@@ -97,19 +100,20 @@ game_loop:
 	addi $sp, $sp, 4
 	
 	
-	jal checkUserInput
+	jal update_doodle_position
+
+	
+	add $t0, $zero, 200
+	sw $t0, sleep_time
+	
 	
 	# after we have shifted right we need to also shift up or down (occilate the doodle)
 	add $t0, $zero, $zero # Will act as pointer to our array
 	addi $t1, $zero, 32 # will let us know the end pointer in our array
 	la $t2, personArray
-	
-	# our character is always ocilating up and down, we take care of that here
-	jal shift_auto
-	
-	# if our character is at a certain location we might need to shift our platforms so we need to account for that
-	
+
 	jal sleep
+	# if our character is at a certain location we might need to shift our platforms so we need to account for tha
 	j game_loop
 	jr $ra
 
@@ -122,6 +126,7 @@ blip_character:
 	
 	bne $t0, $t1, blip_character
 	jr $ra # return back to the game loop
+
 
 erase_doodle:
 	add $t3, $t2, $t0 # current pointer at A[i], Not the value
@@ -140,10 +145,11 @@ erase_doodle:
 	jr $ra
 
 	
-checkUserInput:
+update_doodle_position:
 	# going to check for input
 	li $t1, 97
 	li $t2, 100
+
 	
 	lw $s3, keyboardEvent # load in the address
 	lw $t0, 0($s3) # get's the value at the address
@@ -162,6 +168,19 @@ checkUserInput:
 	add $t3, $zero, $zero # need to set this back to zero in case we modified it in shift left
 	beq $t0, $t2, shift_Right
 	
+	# our character is always ocilating up and down, we take care of that here
+	# need to load in current height of the doodle and depending on the height we shift is up or down
+	addi $t3, $zero, 5
+	add $t6, $t5, $t3 # current pointer at A[i], Not the value
+	lw $t7, 0($t6) # load address A[4]. This is the address for the head of the doodle
+	lw $t0, highest_doodle_location
+	
+	add $t3, $zero, $zero 
+	ble $t0, $t7 shift_up_auto
+	
+	add $t3, $zero, $zero
+	j shift_down_auto
+	
 	jr $ra # return back to parent
 
 return_to_caller:
@@ -173,7 +192,7 @@ shift_Left:
 	# need to shift every single elememt in personArray by a certain amount of units 
 	add $t6, $t5, $t3 # current pointer at A[i], Not the value
 	lw $t7, 0($t6) # load address A[i]
-	addi $t7, $t7 -4 # prob gonna have to handle  the case where the character cannot move right
+	addi $t7, $t7 -4
 	sw $t7, 0($t6) # update value in the array
 	addi $t3, $t3, 4
 
@@ -187,7 +206,7 @@ shift_Right:
 	# need to shift every single elememt in personArray by a certain amount of units 
 	add $t6, $t5, $t3 # current pointer at A[i], Not the value
 	lw $t7, 0($t6) # load address A[i]
-	addi $t7, $t7 4 # prob gonna have to handle  the case where the character cannot move right
+	addi $t7, $t7 4 
 	sw $t7, 0($t6) # update value in the array
 	addi $t3, $t3, 4
 	
@@ -196,9 +215,22 @@ shift_Right:
 	sw $zero, 0($s3) # need to reset the value at the keyboadEvent address
 	jr $ra	
 
-shift_auto:
-	jr $ra 				
- 
+shift_up_auto:
+	jr $ra
+	# Need to shift every single elememt in personArray by a certain amount of units 
+	add $t6, $t5, $t3 # current pointer at A[i], Not the value
+	lw $t7, 0($t6) # load address A[i]
+	addi $t7, $t7 -128
+	sw $t7, 0($t6) # update value in the array
+	addi $t3, $t3, 4
+	
+	bne $t3, $t4, shift_up_auto
+	
+	sw $zero, 0($s3) # need to reset the value at the keyboadEvent address
+	jr $ra				
+
+shift_down_auto:
+	jr $ra
 sleep:
 	# sleep to control the animations
  	li $v0, 32 # the sleep syscall
