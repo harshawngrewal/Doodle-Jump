@@ -18,7 +18,7 @@
 	stepsArray:	.word  0x10008180, 0x10008820, 0x10008F40
 	
 	# this will hold the contents of the character in our game
-	personArray: 	.word 0x10008E40, 0x10008DC0, 0x10008DC4, 0x10008DC8, 0x10008D48, 0x10008DCC, 0x10008DD0, 0x10008E50
+	personArray: 	.word 0x10008E44, 0x10008DC4, 0x10008DC8, 0x10008D48, 0x10008DCC, 0x10008E4C
 	
 	# this hold the addresses that keep information of keyboard events
 	keyboardEvent:	.word 0xffff0000
@@ -48,7 +48,7 @@ main:
 	jal generate_steps
 	
 	add $t0, $zero, $zero # Will act as pointer to our array
-	addi $t1, $zero, 32 # Will let us know the end pointer in our array
+	addi $t1, $zero, 24 # Will let us know the end pointer in our array
 	la $t2, personArray
 	
 	j game_loop
@@ -104,14 +104,14 @@ game_loop:
 	
 	jal update_doodle_position_user 
 	jal update_doodle_position_auto # up down auto movement
-	jal collision_detection # will check collision of doodle with platforms 
+	jal check_collision # will check collision of doodle with platforms 
 	jal check_hit_ground # will check if the doodle has hit the ground in which case the doodle lost
 	
 
 	
 	# after we have shifted right we need to also shift up or down (occilate the doodle)
 	add $t0, $zero, $zero # Will act as pointer to our array
-	addi $t1, $zero, 32 # will let us know the end pointer in our array
+	addi $t1, $zero, 24 # will let us know the end pointer in our array
 	la $t2, personArray
 	jal blip_character
 	
@@ -119,7 +119,7 @@ game_loop:
 	sw $t0, sleep_time
 	
 	add $t0, $zero, $zero # Will act as pointer to our array
-	addi $t1, $zero, 32 # will let us know the end pointer in our array
+	addi $t1, $zero, 24 # will let us know the end pointer in our array
 	la $t2, personArray
 	
 
@@ -167,7 +167,7 @@ update_doodle_position_user:
 	
 	# need to load in the personArray in case we shift it
 	add $t3, $zero, $zero # Will act as pointer to our array
-	addi $t4, $zero, 32 # will let us know the end pointer in our array
+	addi $t4, $zero, 24 # will let us know the end pointer in our array
 	la $t5, personArray
 	
 	lw $s4, keyClicked # loads in the address
@@ -185,7 +185,7 @@ return_to_caller:
 
 update_doodle_position_auto:
 	add $t3, $zero, $zero # Will act as pointer to our array
-	addi $t4, $zero, 32 # will let us know the end pointer in our array
+	addi $t4, $zero, 24 # will let us know the end pointer in our array
 	la $t5, personArray 
 	lw $t0, shift_direction
 	
@@ -235,7 +235,7 @@ shift_up_auto:
 	
 	# we also may need to flip the value of the shift_direction
 	lw $t0, highest_doodle_position
-	lw $t1, 20($t5) # will load the the A[5] which is the position of the head 
+	lw $t1, 16($t5) # will load the the A[5] which is the position of the head 
 	ble $t1, $t0, set_direction_to_1
 	
 	jr $ra				
@@ -253,7 +253,7 @@ shift_down_auto:
 	
 	# we also may need to flip the value of the shift_direction
 	lw $t0, lowest_doodle_position
-	lw $t1, 20($t5) # will load the the A[5] which is the position of the head 
+	lw $t1, 16($t5) # will load the the A[5] which is the position of the head 
 	bge $t1, $t0, set_direction_to_0
 	
 	jr $ra	
@@ -271,7 +271,7 @@ set_direction_to_0:
 	
 
 
-check_collision_detection:
+check_collision:
 	jr $ra
 
 check_hit_ground:
