@@ -104,19 +104,26 @@ game_loop:
 	
 	jal update_doodle_position_user 
 	jal update_doodle_position_auto # up down auto movement
+	
 
-	add $t0, $zero, 50
-	sw $t0, sleep_time
 	
 	# after we have shifted right we need to also shift up or down (occilate the doodle)
 	add $t0, $zero, $zero # Will act as pointer to our array
 	addi $t1, $zero, 32 # will let us know the end pointer in our array
 	la $t2, personArray
+	jal blip_character
+	
+	add $t0, $zero, 50
+	sw $t0, sleep_time
+	
+	add $t0, $zero, $zero # Will act as pointer to our array
+	addi $t1, $zero, 32 # will let us know the end pointer in our array
+	la $t2, personArray
+	
 
 	jal sleep
 	# if our character is at a certain location we might need to shift our platforms so we need to account for tha
 	j game_loop
-	jr $ra
 
 blip_character:
 	#blip our character icon
