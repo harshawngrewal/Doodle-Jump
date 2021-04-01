@@ -104,6 +104,8 @@ game_loop:
 	
 	jal update_doodle_position_user 
 	jal update_doodle_position_auto # up down auto movement
+	jal collision_detection # will check collision of doodle with platforms 
+	jal check_hit_ground # will check if the doodle has hit the ground in which case the doodle lost
 	
 
 	
@@ -267,7 +269,13 @@ set_direction_to_0:
 	sw $zero, shift_direction # now this means next time we will shift up
 	jr $ra # jump back to the game loop
 	
-	
+
+
+check_collision_detection:
+	jr $ra
+
+check_hit_ground:
+	jr $ra
  	
 sleep:
 	# sleep to control the animations
