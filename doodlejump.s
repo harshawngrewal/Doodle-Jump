@@ -11,8 +11,8 @@
 	displayAddressStart:	.word	0x10008000 # 268468224 in decimal
 	displayAddressEnd: 	.word   0x10009000 # the end of display
 	
-	highest_doodle_location: .word	0x10008280 # 268468224 in decimal
-	lowest_doodle_location:  .word  0x10009000
+	highest_doodle_position: .word	0x10008280 # 268468224 in decimal
+	lowest_doodle_position:  .word  0x10009000
 	
 	# note that each step will take up 4 units = 16 bytes since each unit is 4 bytes 
 	stepsArray:	.word  0x10008180, 0x10008820, 0x10008F40
@@ -25,6 +25,8 @@
 	keyClicked:	.word 0xffff0004
 		
 	sleep_time:	.word 0
+	
+	shift_direction:	.word 0 # zero means we are shifting up and 1 means we should shift down 
 .text
 	li $s1, 0x87ceeb	# $t1 stores the red colour code
 	li $s2, 0xffffff	# $t2 stores the green colour code
@@ -46,7 +48,7 @@ main:
 	jal generate_steps
 	
 	add $t0, $zero, $zero # Will act as pointer to our array
-	addi $t1, $zero, 32 # will let us know the end pointer in our array
+	addi $t1, $zero, 32 # Will let us know the end pointer in our array
 	la $t2, personArray
 	
 	j game_loop
@@ -100,12 +102,11 @@ game_loop:
 	addi $sp, $sp, 4
 	
 	
-	jal update_doodle_position
+	jal update_doodle_position_user 
+	jal update_doodle_position_auto # up down auto movement
 
-	
-	add $t0, $zero, 200
+	add $t0, $zero, 50
 	sw $t0, sleep_time
-	
 	
 	# after we have shifted right we need to also shift up or down (occilate the doodle)
 	add $t0, $zero, $zero # Will act as pointer to our array
@@ -145,12 +146,11 @@ erase_doodle:
 	jr $ra
 
 	
-update_doodle_position:
+update_doodle_position_user:
 	# going to check for input
 	li $t1, 97
 	li $t2, 100
 
-	
 	lw $s3, keyboardEvent # load in the address
 	lw $t0, 0($s3) # get's the value at the address
 	
@@ -160,35 +160,33 @@ update_doodle_position:
 	add $t3, $zero, $zero # Will act as pointer to our array
 	addi $t4, $zero, 32 # will let us know the end pointer in our array
 	la $t5, personArray
-
+	
 	lw $s4, keyClicked # loads in the address
 	lw $t0, 0($s4) # gives us the ASCII value of the key pressed  
-	beq $t0, $t1, shift_Left
 	
-	add $t3, $zero, $zero # need to set this back to zero in case we modified it in shift left
+	beq $t0, $t1, shift_Left
 	beq $t0, $t2, shift_Right
 	
-	# our character is always ocilating up and down, we take care of that here
-	# need to load in current height of the doodle and depending on the height we shift is up or down
-	addi $t3, $zero, 5
-	add $t6, $t5, $t3 # current pointer at A[i], Not the value
-	lw $t7, 0($t6) # load address A[4]. This is the address for the head of the doodle
-	lw $t0, highest_doodle_location
+	jr $ra # return back to the game loop
 	
-	add $t3, $zero, $zero 
-	ble $t0, $t7 shift_up_auto
 	
-	add $t3, $zero, $zero
-	j shift_down_auto
-	
-	jr $ra # return back to parent
-
 return_to_caller:
 	jr $ra
+
+
+update_doodle_position_auto:
+	add $t3, $zero, $zero # Will act as pointer to our array
+	addi $t4, $zero, 32 # will let us know the end pointer in our array
+	la $t5, personArray 
+	lw $t0, shift_direction
 	
+	add $t3, $zero, $zero 
+	beq $zero, $t0 shift_up_auto # if the shift direction is 0 then we should shift up
+	j shift_down_auto # if we don't shift up that means we should shift down
+
+
 	
 shift_Left:
-	
 	# need to shift every single elememt in personArray by a certain amount of units 
 	add $t6, $t5, $t3 # current pointer at A[i], Not the value
 	lw $t7, 0($t6) # load address A[i]
@@ -197,8 +195,8 @@ shift_Left:
 	addi $t3, $t3, 4
 
 	bne $t3, $t4, shift_Left
-	
 	sw $zero, 0($s3) # need to reset the value at the keyboadEvent address
+	
 	jr $ra		
 	
 
@@ -216,21 +214,54 @@ shift_Right:
 	jr $ra	
 
 shift_up_auto:
-	jr $ra
 	# Need to shift every single elememt in personArray by a certain amount of units 
 	add $t6, $t5, $t3 # current pointer at A[i], Not the value
 	lw $t7, 0($t6) # load address A[i]
 	addi $t7, $t7 -128
 	sw $t7, 0($t6) # update value in the array
 	addi $t3, $t3, 4
-	
 	bne $t3, $t4, shift_up_auto
 	
 	sw $zero, 0($s3) # need to reset the value at the keyboadEvent address
+	
+	# we also may need to flip the value of the shift_direction
+	lw $t0, highest_doodle_position
+	lw $t1, 20($t5) # will load the the A[5] which is the position of the head 
+	ble $t1, $t0, set_direction_to_1
+	
 	jr $ra				
 
 shift_down_auto:
-	jr $ra
+	# Need to shift every single elememt in personArray by a certain amount of units 
+	add $t6, $t5, $t3 # current pointer at A[i], Not the value
+	lw $t7, 0($t6) # load address A[i]
+	addi $t7, $t7 128
+	sw $t7, 0($t6) # update value in the array
+	addi $t3, $t3, 4
+	bne $t3, $t4, shift_down_auto
+	
+	sw $zero, 0($s3) # need to reset the value at the keyboadEvent address
+	
+	# we also may need to flip the value of the shift_direction
+	lw $t0, lowest_doodle_position
+	lw $t1, 20($t5) # will load the the A[5] which is the position of the head 
+	bge $t1, $t0, set_direction_to_0
+	
+	jr $ra	
+	
+
+set_direction_to_1:
+	addi $t0, $zero, 1 
+	sw $t0, shift_direction # now this means next time we will shift down
+	jr $ra # jump back to the game loop
+	
+
+set_direction_to_0:
+	sw $zero, shift_direction # now this means next time we will shift up
+	jr $ra # jump back to the game loop
+	
+	
+ 	
 sleep:
 	# sleep to control the animations
  	li $v0, 32 # the sleep syscall
