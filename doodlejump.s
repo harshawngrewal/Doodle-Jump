@@ -89,13 +89,17 @@ game_loop:
 	
 	add $t0, $zero, $zero # Will act as pointer to our array
 	jal erase_doodle
-
-
+	
 	jal update_doodle_position_user 
 	jal update_doodle_position_auto # up down auto movement
 	jal check_collision # will check collision of doodle with platforms 
-	jal check_hit_ground # will check if the doodle has hit the ground in which case the doodle lost
-
+	jal check_hit_ground # will check if the doodle has hit the ground in which case the doodle loss
+		
+	add $t0, $zero, $zero # Will act as pointer to our array
+	addi $t1, $zero, 12 # Will let us know the end pointer in our array
+	la $t2, stepsArray # pointer to the platform array(we are loading in the address)
+	jal generate_steps
+	
 	add $t0, $zero, 100
 	sw $t0, sleep_time
 	
