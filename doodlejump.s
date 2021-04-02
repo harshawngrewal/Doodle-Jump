@@ -44,7 +44,7 @@ main:
 	
 	add $t0, $zero, $zero # Will act as pointer to our array
 	addi $t1, $zero, 12 # Will let us know the end pointer in our array
-	la $t2, stepsArray # pointer to the array(we are loading in the address)
+	la $t2, stepsArray # pointer to the platform array(we are loading in the address)
 	jal generate_steps
 	
 	add $t0, $zero, $zero # Will act as pointer to our array
@@ -62,7 +62,6 @@ paint_background:
 
 	jr $ra  # will return to the current instruction in main
 
-	
 				
 generate_steps:
 	# Need to load in the load in the steps
@@ -84,48 +83,34 @@ generate_steps:
 
 		
 game_loop:
-
+	jal blip_character
+	add $t0, $zero, $zero
 	jal blip_character
 	
-	addi $sp, $sp, -4
-	sw $ra, 0($sp) # need to keep the previous parent pointer
-	jal sleep
-	lw $ra, 0($sp) # restore the previous parent pointer
-	addi $sp, $sp, 4
-	
-	
 	add $t0, $zero, $zero # Will act as pointer to our array
-	addi $sp, $sp, -4
-	sw $ra, 0($sp) # need to keep the previous parent pointer
 	jal erase_doodle
-	lw $ra, 0($sp) # restore the previous parent pointer
-	addi $sp, $sp, 4
-	
-	
+
+
 	jal update_doodle_position_user 
 	jal update_doodle_position_auto # up down auto movement
 	jal check_collision # will check collision of doodle with platforms 
 	jal check_hit_ground # will check if the doodle has hit the ground in which case the doodle lost
-	
 
-	
-	# after we have shifted right we need to also shift up or down (occilate the doodle)
-	add $t0, $zero, $zero # Will act as pointer to our array
-	addi $t1, $zero, 24 # will let us know the end pointer in our array
-	la $t2, personArray
-	jal blip_character
-	
-	add $t0, $zero, 50
+	add $t0, $zero, 100
 	sw $t0, sleep_time
 	
 	add $t0, $zero, $zero # Will act as pointer to our array
 	addi $t1, $zero, 24 # will let us know the end pointer in our array
 	la $t2, personArray
 	
-
+	jal blip_character
+	add $t0, $zero, $zero
+	jal blip_character
+	add $t0, $zero, $zero # Will act as pointer to our array
+	
 	jal sleep
-	# if our character is at a certain location we might need to shift our platforms so we need to account for tha
 	j game_loop
+	
 
 blip_character:
 	#blip our character icon
@@ -143,14 +128,7 @@ erase_doodle:
 	lw $t4, 0($t3) # stores actualy value from the pointer. Value itself is an address
 	sw $s1, 0($t4) # now this offset the address so that we can store something there 
 	addi $t0, $t0, 4
-	
-	addi $sp, $sp, -4
-	sw $ra, 0($sp) # need to keep the previous parent pointer
-	#jal sleep
-	lw $ra, 0($sp) # restore the previous parent pointer
-	addi $sp, $sp, 4
 
-	
 	bne $t0, $t1, erase_doodle
 	jr $ra
 
@@ -179,9 +157,6 @@ update_doodle_position_user:
 	jr $ra # return back to the game loop
 	
 	
-return_to_caller:
-	jr $ra
-
 
 update_doodle_position_auto:
 	add $t3, $zero, $zero # Will act as pointer to our array
@@ -210,7 +185,7 @@ shift_Left:
 	
 
 shift_Right:
-	# need to shift every single elememt in personArray by a certain amount of units 
+	# Need to shift every single elememt in personArray by a certain amount of units 
 	add $t6, $t5, $t3 # current pointer at A[i], Not the value
 	lw $t7, 0($t6) # load address A[i]
 	addi $t7, $t7 4 
@@ -221,6 +196,7 @@ shift_Right:
 	
 	sw $zero, 0($s3) # need to reset the value at the keyboadEvent address
 	jr $ra	
+
 
 shift_up_auto:
 	# Need to shift every single elememt in personArray by a certain amount of units 
@@ -270,12 +246,68 @@ set_direction_to_0:
 	jr $ra # jump back to the game loop
 	
 
-
 check_collision:
-	jr $ra
+	lw $t0 shift_direction
+	beq $t0, $zero, return_to_caller # we don't check for collisions unless doodle is moving down
+	# maybe we should still check as we may need to repaint the platforms in the case of any collision
 
+	la $t0, personArray
+	la $t1, stepsArray # Pointer to the platform array(we are loading in the address)
+	
+	addi $sp, $sp, -4
+	sw $ra, 0($sp) # need to keep the previous parent pointer
+	
+	lw $t2, 0($t1) # stepsArray[0]
+	jal check_collision_left_leg # will check collision with current platform
+	jal check_collision_right_leg
+	
+	lw $t2, 4($t1) # stepsArray[1]
+	jal check_collision_left_leg
+	jal check_collision_right_leg
+	
+	lw $t2, 8($t1) # stepsArray[2]
+	jal check_collision_left_leg
+	jal check_collision_right_leg
+	
+	lw $ra, 0($sp) # restore the previous parent pointer
+	addi $sp, $sp, 4
+	
+	jr $ra
+	
+
+check_collision_left_leg:
+	# if there is a collision we set the shift_direction to 0
+	lw $t3, 0($t0) # left leg
+	addi $t4, $zero 24 # the difference in bytes between the start of platform and the end of it
+	
+	sub $t5, $t3 $t2 # the difference in bytes between the left leg and the start of platform
+	bgt $t5, $t4  return_to_caller
+	blt $t5, $zero, return_to_caller
+	
+	# Is in between the platform
+	j set_direction_to_0 # causes the doodle to bounce off the platform
+
+
+check_collision_right_leg:
+	# if there is a collision we set the shift_direction to 0
+	lw $t3, 20($t0) # right leg
+	addi $t4, $zero 24 # the difference in bytes between the start of platform and the end of it
+	
+	sub $t5, $t3 $t2 # the difference in bytes between the left leg and the start of platform
+	bgt $t5, $t4  return_to_caller
+	blt $t5, $zero, return_to_caller
+	
+	# is in between the platform
+	j set_direction_to_0 # causes the doodle to bounce off the platform
+		
+		
 check_hit_ground:
 	jr $ra
+	
+	
+return_to_caller:
+	jr $ra
+
  	
 sleep:
 	# sleep to control the animations
@@ -288,3 +320,10 @@ sleep:
 Exit:
 	li $v0, 10 # terminate the program gracefully
 	syscall	
+	
+	
+#addi $sp, $sp, -4
+#sw $ra, 0($sp) # need to keep the previous parent pointer
+#jal sleep
+#lw $ra, 0($sp) # restore the previous parent pointer
+#addi $sp, $sp, 4
