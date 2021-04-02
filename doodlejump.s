@@ -15,7 +15,7 @@
 	lowest_doodle_position:  .word  0x10009000
 	
 	# note that each step will take up 4 units = 16 bytes since each unit is 4 bytes 
-	stepsArray:	.word  0x10008180, 0x10008820, 0x10008F40
+	stepsArray:	.word  0x10008500, 0x100089A0, 0x10008F40
 	
 	# this will hold the contents of the character in our game
 	personArray: 	.word 0x10008E44, 0x10008DC4, 0x10008DC8, 0x10008D48, 0x10008DCC, 0x10008E4C
