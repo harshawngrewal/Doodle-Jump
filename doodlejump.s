@@ -33,9 +33,9 @@
 		
 	
 main:
-	# this part is just for the intial set up of our screen
-	# set the sleep time(keep it low)
-	add $t0, $zero, 50
+	# This part is just for the intial set up of our screen
+	# Set the sleep time(keep it low)
+	add $t0, $zero, 100
 	sw $t0, sleep_time
 
 	lw $t0, displayAddressStart # temp vars so that we can paint entire bitmap
@@ -47,6 +47,7 @@ main:
 	la $t2, stepsArray # pointer to the platform array(we are loading in the address)
 	jal generate_steps
 	
+	
 	add $t0, $zero, $zero # Will act as pointer to our array
 	addi $t1, $zero, 24 # Will let us know the end pointer in our array
 	la $t2, personArray
@@ -54,7 +55,7 @@ main:
 	j game_loop
 
 	
-# need to intialize the background for the map 
+# Need to intialize the background for the map 
 paint_background:
 	sw $s1, 0($t0)
 	addi $t0, $t0, 4
@@ -83,64 +84,70 @@ generate_steps:
 
 		
 game_loop:
-	jal blip_character
-	add $t0, $zero, $zero
-	jal blip_character
-	
-	add $t0, $zero, $zero # Will act as pointer to our array
 	jal erase_doodle
+	add $t0, $zero, $zero 
 	
 	jal update_doodle_position_user 
 	jal update_doodle_position_auto # up down auto movement
 	jal check_collision # will check collision of doodle with platforms 
-	jal check_hit_ground # will check if the doodle has hit the ground in which case the doodle loss
+	#jal check_hit_ground # will check if the doodle has hit the ground in which case the doodle loss
 		
 	add $t0, $zero, $zero # Will act as pointer to our array
 	addi $t1, $zero, 12 # Will let us know the end pointer in our array
 	la $t2, stepsArray # pointer to the platform array(we are loading in the address)
 	jal generate_steps
 	
-	add $t0, $zero, 100
-	sw $t0, sleep_time
-	
 	add $t0, $zero, $zero # Will act as pointer to our array
 	addi $t1, $zero, 24 # will let us know the end pointer in our array
 	la $t2, personArray
 	
 	jal blip_character
-	add $t0, $zero, $zero
-	jal blip_character
-	add $t0, $zero, $zero # Will act as pointer to our array
+	add $t0, $zero, $zero 
+
 	
 	jal sleep
 	j game_loop
 	
 
 blip_character:
-	#blip our character icon
-	add $t3, $t2, $t0 # current pointer at A[i], Not the value
-	lw $t4, 0($t3) # stores actualy value from the pointer. Value itself is an address
-	sw $s2, 0($t4) # now this offset the address so that we can store something there 
-	addi $t0, $t0, 4
+	lw $t3, 0($t2) 
+	sw $s2, 0($t3)
+	lw $t3, 4($t2) 
+	sw $s2, 0($t3)
+	lw $t3, 8($t2) 
+	sw $s2, 0($t3)
+	lw $t3, 12($t2) 
+	sw $s2, 0($t3)
+	lw $t3, 16($t2) 
+	sw $s2, 0($t3)
+	lw $t3, 20($t2) 
+	sw $s2, 0($t3)
 	
-	bne $t0, $t1, blip_character
-	jr $ra # return back to the game loop
-
+	jr $ra
+	
 
 erase_doodle:
-	add $t3, $t2, $t0 # current pointer at A[i], Not the value
-	lw $t4, 0($t3) # stores actualy value from the pointer. Value itself is an address
-	sw $s1, 0($t4) # now this offset the address so that we can store something there 
-	addi $t0, $t0, 4
 
-	bne $t0, $t1, erase_doodle
+	lw $t3, 0($t2) 
+	sw $s1, 0($t3)
+	lw $t3, 4($t2) 
+	sw $s1, 0($t3)
+	lw $t3, 8($t2) 
+	sw $s1, 0($t3)
+	lw $t3, 12($t2) 
+	sw $s1, 0($t3)
+	lw $t3, 16($t2) 
+	sw $s1, 0($t3)
+	lw $t3, 20($t2) 
+	sw $s1, 0($t3)
 	jr $ra
+
 
 	
 update_doodle_position_user:
 	# going to check for input
-	li $t1, 97
-	li $t2, 100
+	li $t1, 106
+	li $t2, 107
 
 	lw $s3, keyboardEvent # load in the address
 	lw $t0, 0($s3) # get's the value at the address
