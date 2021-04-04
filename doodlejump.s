@@ -27,6 +27,10 @@
 	sleep_time:	.word 0
 	
 	shift_direction:	.word 0 # zero means we are shifting up and 1 means we should shift down 
+	
+	jump_start_location:	.word 0x10008F40
+	max_jump_height:	.word 0xA40 #storing the max jump height in hexadecimal
+	
 .text
 	li $s1, 0x87ceeb	# $t1 stores the red colour code
 	li $s2, 0xffffff	# $t2 stores the green colour code
@@ -90,6 +94,7 @@ game_loop:
 	jal update_doodle_position_user 
 	jal update_doodle_position_auto # up down auto movement
 	jal check_collision # will check collision of doodle with platforms 
+	jal check_height # if the doodle is over a certain height from where it jumped we switch directions
 	#jal check_hit_ground # will check if the doodle has hit the ground in which case the doodle loss
 		
 	add $t0, $zero, $zero # Will act as pointer to our array
@@ -146,8 +151,8 @@ erase_doodle:
 	
 update_doodle_position_user:
 	# going to check for input
-	li $t1, 106
-	li $t2, 107
+	li $t1, 97
+	li $t2, 100
 
 	lw $s3, keyboardEvent # load in the address
 	lw $t0, 0($s3) # get's the value at the address
@@ -294,6 +299,7 @@ check_collision_left_leg:
 	sub $t5, $t3 $t2 # the difference in bytes between the left leg and the start of platform
 	bgt $t5, $t4  return_to_caller
 	blt $t5, $zero, return_to_caller
+	sw $t2, jump_start_location
 	
 	# Is in between the platform
 	j set_direction_to_0 # causes the doodle to bounce off the platform
@@ -307,10 +313,23 @@ check_collision_right_leg:
 	sub $t5, $t3 $t2 # the difference in bytes between the left leg and the start of platform
 	bgt $t5, $t4  return_to_caller
 	blt $t5, $zero, return_to_caller
+	sw $t2, jump_start_location
 	
 	# is in between the platform
 	j set_direction_to_0 # causes the doodle to bounce off the platform
-		
+
+	
+check_height:
+ 	lw $t0, jump_start_location # this will always be one of the platforms
+ 	la $t1, personArray
+ 	lw $t1, 12($t1) # this is the head of the character
+ 	lw $t2, max_jump_height
+ 	
+ 	sub $t3, $t0 $t1 # the difference in height
+ 	bge $t3 $t2 set_direction_to_1
+ 	
+ 	jr $ra
+ 	
 		
 check_hit_ground:
 	jr $ra
