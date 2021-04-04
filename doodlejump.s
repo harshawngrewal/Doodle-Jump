@@ -16,6 +16,7 @@
 	
 	# note that each step will take up 4 units = 16 bytes since each unit is 4 bytes 
 	stepsArray:	.word  0x10008500, 0x100089A0, 0x10008F40
+	ground:		.word 0x10008FC0 # the floor
 	
 	# this will hold the contents of the character in our game
 	personArray: 	.word 0x10008E44, 0x10008DC4, 0x10008DC8, 0x10008D48, 0x10008DCC, 0x10008E4C
@@ -31,15 +32,22 @@
 	jump_start_location:	.word 0x10008F40
 	max_jump_height:	.word 0xA40 #storing the max jump height in hexadecimal
 	
-.text
+	# 
+	letter_b:	.word  0x10008720, 0x100087A0, 0x10008820, 0x100088A0, 0x10008920, 0x100089A0, 0x100089A4, 0x100089A8, 0x10008928, 0x100088A8, 0x100088A4, 
+	letter_y:	.word  0x100088B0, 0x10008930, 0x100089B0 0x100089B4, 0x100089B8, 0x10008938, 0x100088B8, 0x10008A38, 0x10008AB8, 0x10008AB4, 0x10008AB0,
+	letter_e:	.word  0x10008940, 0x10008944,  0x10008948, 0x1000894C,  0x100088C0, 0x10008840,  0x10008844,  0x10008848,  0x1000884C,  0x100087C0, 0x10008740,  0x10008744,  0x10008748,  0x1000874C
+				 
+.text 
 	li $s1, 0x87ceeb	# $t1 stores the red colour code
 	li $s2, 0xffffff	# $t2 stores the green colour code
+	li $s4 	0xff0000
 		
 	
 main:
+
 	# This part is just for the intial set up of our screen
 	# Set the sleep time(keep it low)
-	add $t0, $zero, 100
+	add $t0, $zero, 120
 	sw $t0, sleep_time
 
 	lw $t0, displayAddressStart # temp vars so that we can paint entire bitmap
@@ -88,15 +96,19 @@ generate_steps:
 
 		
 game_loop:
+	# draw the doodle
 	jal erase_doodle
-	add $t0, $zero, $zero 
+	add $t0, $zero, $zero
+	
 	
 	jal update_doodle_position_user 
-	jal update_doodle_position_auto # up down auto movement
-	jal check_collision # will check collision of doodle with platforms 
+	jal update_doodle_position_auto # Up down auto movement
+	jal check_hit_ground  # will check if the doodle has hit the ground in which case the doodle loss
+	jal check_collision # Will check collision of doodle with platforms 
 	jal check_height # if the doodle is over a certain height from where it jumped we switch directions
-	#jal check_hit_ground # will check if the doodle has hit the ground in which case the doodle loss
-		
+	
+	
+	
 	add $t0, $zero, $zero # Will act as pointer to our array
 	addi $t1, $zero, 12 # Will let us know the end pointer in our array
 	la $t2, stepsArray # pointer to the platform array(we are loading in the address)
@@ -106,33 +118,15 @@ game_loop:
 	addi $t1, $zero, 24 # will let us know the end pointer in our array
 	la $t2, personArray
 	
-	jal blip_character
+	jal blip_doodle
+	
 	add $t0, $zero, $zero 
-
+	
 	
 	jal sleep
 	j game_loop
-	
-
-blip_character:
-	lw $t3, 0($t2) 
-	sw $s2, 0($t3)
-	lw $t3, 4($t2) 
-	sw $s2, 0($t3)
-	lw $t3, 8($t2) 
-	sw $s2, 0($t3)
-	lw $t3, 12($t2) 
-	sw $s2, 0($t3)
-	lw $t3, 16($t2) 
-	sw $s2, 0($t3)
-	lw $t3, 20($t2) 
-	sw $s2, 0($t3)
-	
-	jr $ra
-	
 
 erase_doodle:
-
 	lw $t3, 0($t2) 
 	sw $s1, 0($t3)
 	lw $t3, 4($t2) 
@@ -147,6 +141,22 @@ erase_doodle:
 	sw $s1, 0($t3)
 	jr $ra
 
+
+blip_doodle:
+	lw $t3, 0($t2) 
+	sw $s2, 0($t3)
+	lw $t3, 4($t2) 
+	sw $s2, 0($t3)
+	lw $t3, 8($t2) 
+	sw $s2, 0($t3)
+	lw $t3, 12($t2) 
+	sw $s2, 0($t3)
+	lw $t3, 16($t2) 
+	sw $s2, 0($t3)
+	lw $t3, 20($t2) 
+	sw $s2, 0($t3)
+	
+	jr $ra
 
 	
 update_doodle_position_user:
@@ -167,6 +177,7 @@ update_doodle_position_user:
 	lw $s4, keyClicked # loads in the address
 	lw $t0, 0($s4) # gives us the ASCII value of the key pressed  
 	
+
 	beq $t0, $t1, shift_Left
 	beq $t0, $t2, shift_Right
 	
@@ -332,7 +343,49 @@ check_height:
  	
 		
 check_hit_ground:
+	la $t0, personArray
+	lw $t1, 0($t0) # left leg
+	lw $t2, displayAddressStart
+	sub $t3, $t1 $t2 # will give the difference in bytes
+	
+	addi $t4, $zero 128
+	div $t3, $t3 $t4
+	addi $t5, $zero 31
+	
+	beq $t3, $t5 Exit
 	jr $ra
+
+		
+game_over:
+
+	add $a0, $zero, $zero
+	la $a1, letter_b
+	addi $a3, $zero 44
+	jal blip_char
+	jal sleep
+	
+	add $a0, $zero, $zero
+	la $a1, letter_y
+	addi $a3, $zero 44
+	jal blip_char
+	jal sleep
+	
+	add $a0, $zero, $zero
+	la $a1, letter_e
+	addi $a3, $zero 68
+
+
+blip_char:
+	add $t3, $a1, $a0 # current pointer at A[i], Not the value
+	lw $t4, 0($t3) # stores actualy value from the pointer
+	
+	# now we actually colour in the units
+	sw $s4, 0($t4)
+
+	addi $a0, $a0, 4
+	bne $a0, $a3, blip_char
+	jr $ra 
+	
 	
 	
 return_to_caller:
@@ -346,8 +399,15 @@ sleep:
  	syscall
  	jr $ra
  	
+	
  		 	 
 Exit:
+	lw $t0, displayAddressStart # temp vars so that we can paint entire bitmap
+	lw $t1, displayAddressEnd
+	jal paint_background # will remove the platforms
+	
+	jal game_over
+	
 	li $v0, 10 # terminate the program gracefully
 	syscall	
 	
