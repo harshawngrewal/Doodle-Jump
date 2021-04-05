@@ -36,7 +36,8 @@
 	letter_b:	.word  0x10008720, 0x100087A0, 0x10008820, 0x100088A0, 0x10008920, 0x100089A0, 0x100089A4, 0x100089A8, 0x10008928, 0x100088A8, 0x100088A4, 
 	letter_y:	.word  0x100088B0, 0x10008930, 0x100089B0 0x100089B4, 0x100089B8, 0x10008938, 0x100088B8, 0x10008A38, 0x10008AB8, 0x10008AB4, 0x10008AB0,
 	letter_e:	.word  0x10008940, 0x10008944,  0x10008948, 0x1000894C,  0x100088C0, 0x10008840,  0x10008844,  0x10008848,  0x1000884C,  0x100087C0, 0x10008740,  0x10008744,  0x10008748,  0x1000874C
-				 
+
+	shift_platforms_bool:	.word 0 			 
 .text 
 	li $s1, 0x87ceeb	# $t1 stores the red colour code
 	li $s2, 0xffffff	# $t2 stores the green colour code
@@ -100,7 +101,6 @@ game_loop:
 	jal erase_doodle
 	add $t0, $zero, $zero
 	
-	
 	jal update_doodle_position_user 
 	jal update_doodle_position_auto # Up down auto movement
 	jal check_hit_ground  # will check if the doodle has hit the ground in which case the doodle loss
@@ -108,6 +108,12 @@ game_loop:
 	jal check_height # if the doodle is over a certain height from where it jumped we switch directions
 	
 	
+	jal set_shift_platforms_bool
+	# we set this because the next function will use these vars
+ 	add $t0, $zero, $zero # Will act as pointer to our array
+	addi $t1, $zero, 12 # Will let us know the end pointer in our array
+	la $t2, stepsArray # pointer to the platform array(we are loading in the address)
+	jal shift_platforms # will shift platforms if shift_platforms var is 0
 	
 	add $t0, $zero, $zero # Will act as pointer to our array
 	addi $t1, $zero, 12 # Will let us know the end pointer in our array
@@ -159,7 +165,7 @@ blip_doodle:
 	jr $ra
 
 	
-update_doodle_position_user:
+update_doodle_position_user:	
 	# going to check for input
 	li $t1, 97
 	li $t2, 100
@@ -186,6 +192,9 @@ update_doodle_position_user:
 	
 
 update_doodle_position_auto:
+	lw $t0, shift_platforms_bool
+	bne $t0, $zero, return_to_caller
+	
 	add $t3, $zero, $zero # Will act as pointer to our array
 	addi $t4, $zero, 24 # will let us know the end pointer in our array
 	la $t5, personArray 
@@ -355,6 +364,65 @@ check_hit_ground:
 	beq $t3, $t5 Exit
 	jr $ra
 
+
+# if the doodle height is over the third platform, we set shift_platforms which freezes the vertical movement of the doodle
+set_shift_platforms_bool:
+	la $t0, personArray
+ 	lw $t0, 0($t0) # this is leg of the doodle
+ 	la $t1, stepsArray
+ 	lw $t1, 0($t1)
+ 	
+ 	sub $t2, $t1 $t0 # the difference in height between the head of the doodle and the top platform 
+ 	blt $t2 $zero return_to_caller
+ 	
+ 	li $t2, 1
+ 	sw $t2, shift_platforms_bool # 1 means that we should shift platforms down
+ 	
+ 	addi $sp, $sp, -4
+	sw $ra, 0($sp) # need to keep the previous parent pointer
+	
+	add $t0, $zero, $zero # Will act as pointer to our array
+	addi $t1, $zero, 12 # Will let us know the end pointer in our array
+	la $t2, stepsArray # pointer to the platform array(we are loading in the address)
+ 	jal erase_platforms # need to do  this 
+ 	
+ 	lw $ra, 0($sp) # restore the previous parent pointer
+	addi $sp, $sp, 4
+	jr $ra 
+ 
+ 		
+erase_platforms:
+	# Need to load in the load in the steps
+	add $t3, $t2, $t0 # current pointer at A[i], Not the value
+	lw $t4, 0($t3) # stores actualy value from the pointer
+	
+	# now we actually colour in the units
+	sw $s1, 0($t4)
+	sw $s1, 4($t4)
+	sw $s1, 8($t4)
+	sw $s1, 12($t4)
+	sw $s1, 16($t4)
+	sw $s1, 20($t4)
+	sw $s1, 24($t4)
+
+	addi $t0, $t0, 4
+	bne $t0, $t1, erase_platforms
+	jr $ra
+		
+ 	
+shift_platforms:
+	lw $t3  shift_platforms_bool
+	beq $t3, $zero, return_to_caller # we are not suppose to shift in this case
+	
+	add $t4, $t2, $t0 # current pointer at A[i], Not the value
+	lw $t5, 0($t4) # load address A[i]
+	addi $t5, $t5 128
+	sw $t5, 0($t4) # update value in the array
+	
+	addi $t0, $t0, 4
+	bne $t1, $t0, shift_platforms
+	
+	jr $ra # done shifting once
 		
 game_over:
 
@@ -412,8 +480,4 @@ Exit:
 	syscall	
 	
 	
-#addi $sp, $sp, -4
-#sw $ra, 0($sp) # need to keep the previous parent pointer
-#jal sleep
-#lw $ra, 0($sp) # restore the previous parent pointer
-#addi $sp, $sp, 4
+
