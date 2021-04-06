@@ -109,6 +109,10 @@ game_loop:
 	
 	
 	jal set_shift_platforms_bool
+	add $t0, $zero, $zero # Will act as pointer to our array
+	addi $t1, $zero, 12 # Will let us know the end pointer in our array
+	la $t2, stepsArray # pointer to the platform array(we are loading in the address)
+ 	jal erase_platforms # need to do  this 
 	# we set this because the next function will use these vars
  	add $t0, $zero, $zero # Will act as pointer to our array
 	addi $t1, $zero, 12 # Will let us know the end pointer in our array
@@ -367,6 +371,12 @@ check_hit_ground:
 
 # if the doodle height is over the third platform, we set shift_platforms which freezes the vertical movement of the doodle
 set_shift_platforms_bool:
+	lw $t0, shift_direction
+	bne $t0, $zero, return_to_caller # if doodle is moving down then do nothing
+
+	lw $t0, shift_platforms_bool
+	bne $t0, $zero set_shift_platforms_bool_0 # since we don't want to set it if it's already set
+
 	la $t0, personArray
  	lw $t0, 0($t0) # this is leg of the doodle
  	la $t1, stepsArray
@@ -380,18 +390,71 @@ set_shift_platforms_bool:
  	
  	addi $sp, $sp, -4
 	sw $ra, 0($sp) # need to keep the previous parent pointer
-	
-	add $t0, $zero, $zero # Will act as pointer to our array
-	addi $t1, $zero, 12 # Will let us know the end pointer in our array
-	la $t2, stepsArray # pointer to the platform array(we are loading in the address)
- 	jal erase_platforms # need to do  this 
+ 	jal modify_stepsArray # will remove last element, shift other two and add a new element in the 0th index
  	
  	lw $ra, 0($sp) # restore the previous parent pointer
 	addi $sp, $sp, 4
 	jr $ra 
- 
+
+# here we check if the shift is complete in which case we set shift_platforms back to 0
+set_shift_platforms_bool_0:
+	la $t0, stepsArray
+ 	lw $t0, 8($t0) # the bottomost platform
+ 	
+ 	lw $t1, displayAddressEnd
+ 	addi $t1, $t1, -256
+ 	
+ 	ble $t0, $t1, return_to_caller
+ 	li $t2, 0
+ 	sw $t2, shift_platforms_bool # 1 means that we should shift platforms down
+ 	
+ 	li $t2, 1
+ 	sw $t2, shift_direction # we want doodle to move down now
+ 	
+ 	jr $ra
  		
+ 		
+ modify_stepsArray:
+ 	la $t0 stepsArray
+ 	lw $t1, 0($t0)
+ 	lw $t2, 4($t0)
+ 	lw $t3, 8($t0)
+ 	
+ 	# Want to erase the bottom platform
+ 	sw $s1, 0($t3)
+	sw $s1, 4($t3)
+	sw $s1, 8($t3)
+	sw $s1, 12($t3)
+	sw $s1, 16($t3)
+	sw $s1, 20($t3)
+	sw $s1, 24($t3)
+	
+	# new values for the second and  third  platforms
+ 	sw $t1, 4($t0)
+ 	sw $t2, 8($t0)
+ 	
+ 	
+ 	# Need to generate a new step location for the top step
+ 	li $v0, 42 # the random int generator
+ 	li $t3, 26
+ 	li $a0, 0  
+ 	add $a1, $t3, $zero
+ 	syscall # now a0 will contain a random value form 0-26
+ 	
+ 	li $t4, 4
+ 	mult $a0, $t4
+ 	mflo $t4
+ 	
+ 	lw $t3, displayAddressStart
+ 	add $t4, $t3, $t4
+ 	sw $t4, 0($t0) # generate new platform
+ 	
+ 	jr $ra
+
+
 erase_platforms:
+	lw $t5, shift_platforms_bool
+	beq $t5, $zero return_to_caller # no need to erase as we are not in that state
 	# Need to load in the load in the steps
 	add $t3, $t2, $t0 # current pointer at A[i], Not the value
 	lw $t4, 0($t3) # stores actualy value from the pointer
@@ -408,8 +471,10 @@ erase_platforms:
 	addi $t0, $t0, 4
 	bne $t0, $t1, erase_platforms
 	jr $ra
-		
+
+ 		
  	
+			
 shift_platforms:
 	lw $t3  shift_platforms_bool
 	beq $t3, $zero, return_to_caller # we are not suppose to shift in this case
