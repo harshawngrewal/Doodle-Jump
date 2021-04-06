@@ -363,7 +363,7 @@ check_hit_ground:
 	
 	addi $t4, $zero 128
 	div $t3, $t3 $t4
-	addi $t5, $zero 31
+	addi $t5, $zero 32
 	
 	beq $t3, $t5 Exit
 	jr $ra
@@ -378,7 +378,7 @@ set_shift_platforms_bool:
 	bne $t0, $zero set_shift_platforms_bool_0 # since we don't want to set it if it's already set
 
 	la $t0, personArray
- 	lw $t0, 0($t0) # this is leg of the doodle
+ 	lw $t0, 0($t0) # this is hea of the doodle
  	la $t1, stepsArray
  	lw $t1, 0($t1)
  	
@@ -490,7 +490,9 @@ shift_platforms:
 	jr $ra # done shifting once
 		
 game_over:
-
+	addi $sp, $sp, -4
+	sw $ra, 0($sp) # need to keep the previous parent pointer
+ 	
 	add $a0, $zero, $zero
 	la $a1, letter_b
 	addi $a3, $zero 44
@@ -505,8 +507,14 @@ game_over:
 	
 	add $a0, $zero, $zero
 	la $a1, letter_e
-	addi $a3, $zero 68
-
+	addi $a3, $zero 56
+	jal blip_char
+	jal sleep
+	
+	lw $ra, 0($sp) # restore the previous parent pointer
+	addi $sp, $sp, 4
+	jr $ra
+	
 
 blip_char:
 	add $t3, $a1, $a0 # current pointer at A[i], Not the value
@@ -534,13 +542,12 @@ sleep:
  	
 	
  		 	 
-Exit:
+Exit:	
 	lw $t0, displayAddressStart # temp vars so that we can paint entire bitmap
 	lw $t1, displayAddressEnd
-	jal paint_background # will remove the platforms
+	#jal paint_background # will remove the platforms
 	
 	jal game_over
-	
 	li $v0, 10 # terminate the program gracefully
 	syscall	
 	
