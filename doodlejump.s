@@ -402,7 +402,7 @@ set_shift_platforms_bool_0:
  	lw $t0, 8($t0) # the bottomost platform
  	
  	lw $t1, displayAddressEnd
- 	addi $t1, $t1, -256
+ 	addi $t1, $t1, -384
  	
  	ble $t0, $t1, return_to_caller
  	li $t2, 0
