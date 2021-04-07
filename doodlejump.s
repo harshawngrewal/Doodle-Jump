@@ -8,6 +8,11 @@
 # - 32 units per row = 128 bytes
 
 .data
+	beep: .word 72
+	duration: .word 700
+	volume: .word 127
+	instrument: .word 7
+
 	displayAddressStart:	.word	0x10008000 # 268468224 in decimal
 	displayAddressEnd: 	.word   0x10009000 # the end of display
 	
@@ -30,7 +35,7 @@
 	shift_direction:	.word 0 # zero means we are shifting up and 1 means we should shift down 
 	
 	jump_start_location:	.word 0x10008F40
-	max_jump_height:	.word 0xA40 #storing the max jump height in hexadecimal
+	max_jump_height:	.word 0xA00 #storing the max jump height in hexadecimal
 	
 	# 
 	letter_b:	.word  0x10008720, 0x100087A0, 0x10008820, 0x100088A0, 0x10008920, 0x100089A0, 0x100089A4, 0x100089A8, 0x10008928, 0x100088A8, 0x100088A4, 
@@ -48,7 +53,7 @@ main:
 
 	# This part is just for the intial set up of our screen
 	# Set the sleep time(keep it low)
-	add $t0, $zero, 50
+	add $t0, $zero, 70
 	sw $t0, sleep_time
 
 	lw $t0, displayAddressStart # temp vars so that we can paint entire bitmap
@@ -280,9 +285,26 @@ set_direction_to_1:
 	sw $t0, shift_direction # now this means next time we will shift down
 	jr $ra # jump back to the game loop
 	
+	li $v0,31
+	lw $a0,beep
+	lw $a1,duration
+	lw $a2, instrument
+	lw $a3, volume
+
+	syscall
+	
 
 set_direction_to_0:
 	sw $zero, shift_direction # now this means next time we will shift up
+	
+	# is in between the platform
+	li $v0,31
+	lw $a0,beep
+	lw $a1,duration
+	lw $a2, instrument
+	lw $a3, volume
+
+	syscall
 	jr $ra # jump back to the game loop
 	
 
@@ -339,7 +361,6 @@ check_collision_right_leg:
 	blt $t5, $zero, return_to_caller
 	sw $t2, jump_start_location
 	
-	# is in between the platform
 	j set_direction_to_0 # causes the doodle to bounce off the platform
 
 	
@@ -378,7 +399,7 @@ set_shift_platforms_bool:
 	bne $t0, $zero set_shift_platforms_bool_0 # since we don't want to set it if it's already set
 
 	la $t0, personArray
- 	lw $t0, 12($t0) # this is hea of the doodle
+ 	lw $t0, 12($t0) # this is leg of the doodle
  	la $t1, stepsArray
  	lw $t1, 0($t1)
  	
