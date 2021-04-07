@@ -48,7 +48,7 @@ main:
 
 	# This part is just for the intial set up of our screen
 	# Set the sleep time(keep it low)
-	add $t0, $zero, 120
+	add $t0, $zero, 50
 	sw $t0, sleep_time
 
 	lw $t0, displayAddressStart # temp vars so that we can paint entire bitmap
@@ -378,7 +378,7 @@ set_shift_platforms_bool:
 	bne $t0, $zero set_shift_platforms_bool_0 # since we don't want to set it if it's already set
 
 	la $t0, personArray
- 	lw $t0, 0($t0) # this is hea of the doodle
+ 	lw $t0, 12($t0) # this is hea of the doodle
  	la $t1, stepsArray
  	lw $t1, 0($t1)
  	
@@ -402,7 +402,7 @@ set_shift_platforms_bool_0:
  	lw $t0, 8($t0) # the bottomost platform
  	
  	lw $t1, displayAddressEnd
- 	addi $t1, $t1, -384
+ 	addi $t1, $t1, -256
  	
  	ble $t0, $t1, return_to_caller
  	li $t2, 0
@@ -446,6 +446,7 @@ set_shift_platforms_bool_0:
  	mflo $t4
  	
  	lw $t3, displayAddressStart
+ 	addi $t3, $t3, -128
  	add $t4, $t3, $t4
  	sw $t4, 0($t0) # generate new platform
  	
