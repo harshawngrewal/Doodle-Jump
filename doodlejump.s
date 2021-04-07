@@ -46,7 +46,7 @@
 	shift_direction:	.word 0 # zero means we are shifting up and 1 means we should shift down 
 	
 	jump_start_location:	.word 0x10008F40
-	max_jump_height:	.word 0x9AF #storing the max jump height in hexadecimal
+	max_jump_height:	.word 0xA40 #storing the max jump height in hexadecimal
 	
 	# 
 	letter_b:	.word  0x10008720, 0x100087A0, 0x10008820, 0x100088A0, 0x10008920, 0x100089A0, 0x100089A4, 0x100089A8, 0x10008928, 0x100088A8, 0x100088A4, 
@@ -454,7 +454,8 @@ set_shift_platforms_bool:
  	lw $t1, 0($t1)
  	
  	sub $t2, $t1 $t0 # the difference in height between the head of the doodle and the top platform 
- 	blt $t2 $zero return_to_caller
+ 	addi $t1, $zero 128
+ 	blt $t2 $t1 return_to_caller
  	
  	li $t2, 1
  	sw $t2, shift_platforms_bool # 1 means that we should shift platforms down
