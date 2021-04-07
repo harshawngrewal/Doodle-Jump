@@ -8,10 +8,21 @@
 # - 32 units per row = 128 bytes
 
 .data
+	instrument: .word 7
+	iteration:  .word 0
+	
+	# the following is the music cords for twinkle twinkle little star
+	twinkle_little_star: .word  72, 72, 67, 67, 69, 69, 67, 65, 65, 64, 64, 62, 62, 72, 67, 67, 65, 65, 64, 64, 62, 72, 72, 67, 67, 69, 69, 67, 
+		    65, 65, 64, 64, 62, 62, 72
+	
+	
+	#  this is the sound effect for hitting a platform. Total 42 notes, index 0-41
 	beep: .word 72
+	current_note_index: .word 0
+		    
 	duration: .word 700
 	volume: .word 127
-	instrument: .word 7
+	
 
 	displayAddressStart:	.word	0x10008000 # 268468224 in decimal
 	displayAddressEnd: 	.word   0x10009000 # the end of display
@@ -35,7 +46,7 @@
 	shift_direction:	.word 0 # zero means we are shifting up and 1 means we should shift down 
 	
 	jump_start_location:	.word 0x10008F40
-	max_jump_height:	.word 0xA00 #storing the max jump height in hexadecimal
+	max_jump_height:	.word 0x9AF #storing the max jump height in hexadecimal
 	
 	# 
 	letter_b:	.word  0x10008720, 0x100087A0, 0x10008820, 0x100088A0, 0x10008920, 0x100089A0, 0x100089A4, 0x100089A8, 0x10008928, 0x100088A8, 0x100088A4, 
@@ -129,8 +140,13 @@ game_loop:
 	la $t2, stepsArray # pointer to the platform array(we are loading in the address)
 	jal generate_steps
 	
+	jal play_music # Responsible for playing the appropriate note for twinkle twinkle little star
+	lw $t0, iteration
+	addi $t0, $t0 1
+	sw $t0, iteration # Update this value
+	
 	add $t0, $zero, $zero # Will act as pointer to our array
-	addi $t1, $zero, 24 # will let us know the end pointer in our array
+	addi $t1, $zero, 24 # Will let us know the end pointer in our array
 	la $t2, personArray
 	
 	jal blip_doodle
@@ -140,6 +156,47 @@ game_loop:
 	
 	jal sleep
 	j game_loop
+	
+
+play_music:
+	lw $t0, iteration
+	addi $t2 $zero 10
+	div $t0 $t2
+	mfhi $t1
+	bne $t1 $zero return_to_caller
+	
+	lw $t0, current_note_index
+	la $t1, twinkle_little_star
+	add $t1, $t1, $t0 # the address current note
+	lw $t0, 0($t1) # the actual note
+	
+	li $v0, 31
+	add $a0, $zero, $t0 
+	lw $a1, duration
+	lw $a2, instrument
+	lw $a3, volume
+	syscall
+	
+	addi $sp, $sp, -4
+	sw $ra, 0($sp) # need to keep the previous parent pointer
+ 	jal update_curr_note_index
+ 	
+ 	lw $ra, 0($sp) # restore the previous parent pointer
+	addi $sp, $sp, 4
+	
+	jr $ra
+	
+update_curr_note_index:
+
+	lw $t0, current_note_index
+	addi $t0, $t0 4
+	sw $t0, current_note_index
+	addi $t1, $zero 164
+	ble $t0, $t1 return_to_caller
+	
+	# index is out of bounds, reset to 0
+	sw $zero, current_note_index
+	jr $ra
 
 erase_doodle:
 	lw $t3, 0($t2) 
@@ -285,13 +342,6 @@ set_direction_to_1:
 	sw $t0, shift_direction # now this means next time we will shift down
 	jr $ra # jump back to the game loop
 	
-	li $v0,31
-	lw $a0,beep
-	lw $a1,duration
-	lw $a2, instrument
-	lw $a3, volume
-
-	syscall
 	
 
 set_direction_to_0:
@@ -304,7 +354,7 @@ set_direction_to_0:
 	lw $a2, instrument
 	lw $a3, volume
 
-	syscall
+	#syscall
 	jr $ra # jump back to the game loop
 	
 
