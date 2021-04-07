@@ -31,7 +31,7 @@
 	lowest_doodle_position:  .word  0x10009000
 	
 	# note that each step will take up 4 units = 16 bytes since each unit is 4 bytes 
-	stepsArray:	.word  0x10008500, 0x100089A0, 0x10008F40
+	stepsArray:	.word   0x10008500, 0x10008A20,  0x10008F40,
 	ground:		.word 0x10008FC0 # the floor
 	
 	# this will hold the contents of the character in our game
@@ -46,7 +46,7 @@
 	shift_direction:	.word 0 # zero means we are shifting up and 1 means we should shift down 
 	
 	jump_start_location:	.word 0x10008F40
-	max_jump_height:	.word 0xA40 #storing the max jump height in hexadecimal
+	max_jump_height:	.word 0xA00 #storing the max jump height in hexadecimal
 	
 	# 
 	letter_b:	.word  0x10008720, 0x100087A0, 0x10008820, 0x100088A0, 0x10008920, 0x100089A0, 0x100089A4, 0x100089A8, 0x10008928, 0x100088A8, 0x100088A4, 
@@ -449,7 +449,7 @@ set_shift_platforms_bool:
 	bne $t0, $zero set_shift_platforms_bool_0 # since we don't want to set it if it's already set
 
 	la $t0, personArray
- 	lw $t0, 12($t0) # this is leg of the doodle
+ 	lw $t0, 12($t0) # this is head of the doodle
  	la $t1, stepsArray
  	lw $t1, 0($t1)
  	
@@ -476,7 +476,7 @@ set_shift_platforms_bool_0:
  	lw $t1, displayAddressEnd
  	addi $t1, $t1, -256
  	
- 	ble $t0, $t1, return_to_caller
+ 	blt $t0, $t1, return_to_caller
  	li $t2, 0
  	sw $t2, shift_platforms_bool # 1 means that we should shift platforms down
  	
@@ -518,7 +518,6 @@ set_shift_platforms_bool_0:
  	mflo $t4
  	
  	lw $t3, displayAddressStart
- 	addi $t3, $t3, -128
  	add $t4, $t3, $t4
  	sw $t4, 0($t0) # generate new platform
  	
