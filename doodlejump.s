@@ -12,16 +12,21 @@
 	iteration:  .word 0
 	
 	# the following is the music cords for twinkle twinkle little star
-	twinkle_little_star: .word  72, 72, 67, 67, 69, 69, 67, 65, 65, 64, 64, 62, 62, 72, 67, 67, 65, 65, 64, 64, 62, 72, 72, 67, 67, 69, 69, 67, 
-		    65, 65, 64, 64, 62, 62, 72
-	
+	twinkle_little_star: .word  72, 72, 67, 67, 69, 69, 67, 
+				    65, 65, 64, 64, 62, 62, 72, 
+				    67, 67, 65, 65, 64, 64, 62,
+				    67, 67, 65, 65, 64, 64, 62
+				    72, 72, 67, 67, 69, 69, 67, 
+				    65, 65, 64, 64, 62, 62, 72
+				    0, 0, 0 
+	current_note_index: .word 0
+	duration: .word 700
+	volume: .word 50
 	
 	#  this is the sound effect for hitting a platform. Total 42 notes, index 0-41
 	beep: .word 72
-	current_note_index: .word 0
-		    
-	duration: .word 700
-	volume: .word 127
+	instrument2: .word 38
+	volume2: .word 100
 	
 
 	displayAddressStart:	.word	0x10008000 # 268468224 in decimal
@@ -194,9 +199,20 @@ update_curr_note_index:
 	addi $t1, $zero 164
 	ble $t0, $t1 return_to_caller
 	
+	addi $t1, $zero 176
+	ble $t0, $t1 mute_volume  # mean we are in the final 2 notes
+	
 	# index is out of bounds, reset to 0
 	sw $zero, current_note_index
+	addi $t0, $zero 127 
+	sw $t0, volume # reset volume as we had it on mute for a couple of notes
 	jr $ra
+
+
+mute_volume:
+	sw $zero, volume
+	jr $ra
+	
 
 erase_doodle:
 	lw $t3, 0($t2) 
@@ -351,10 +367,10 @@ set_direction_to_0:
 	li $v0,31
 	lw $a0,beep
 	lw $a1,duration
-	lw $a2, instrument
-	lw $a3, volume
+	lw $a2, instrument2
+	lw $a3, volume2
 
-	#syscall
+	syscall
 	jr $ra # jump back to the game loop
 	
 
