@@ -8,6 +8,39 @@
 # - 32 units per row = 128 bytes
 
 .data
+	digit_1:  
+	0x10008070, 0x10008074, 0x10008078, 
+	0x100080F0,             0x10008170,
+	           0x10008174, 
+	0x100080F8,             0x10008178
+	0x100081F0,             0x100081F8
+	0x10008270,             0x10008278
+		   0x10008274
+		   
+	digit_2:
+	
+	0x10008070, 0x10008074, 0x10008078, 
+	0x100080F0,             0x10008170,
+	           0x10008174, 
+	0x100080F8,             0x10008178
+	0x100081F0,             0x100081F8
+	0x10008270,             0x10008278
+		   0x10008274
+	
+	digit_3:
+	
+	0x10008070, 0x10008074, 0x10008078, 
+	0x100080F0,             0x10008170,
+	           0x10008174, 
+	0x100080F8,             0x10008178
+	0x100081F0,             0x100081F8
+	0x10008270,             0x10008278
+		   0x10008274
+	
+	
+	score: .word 0 # will keep track of score and then display it
+	
+	
 	instrument: .word 7
 	iteration:  .word 0
 	
@@ -116,12 +149,63 @@ generate_steps:
 	bne $t0, $t1, generate_steps
 	jr $ra 
 
+
+display_score:
+	addi $sp, $sp, -4
+	sw $ra, 0($sp) # need to keep the previous parent pointer
+	addi $a0, $zero 52
+	lw $a1, score
+	
+	jal blip_first_digit
+	jal blip_second_digit
+	jal blip_third_digit
+	
+	
+	lw $ra, 0($sp) # restore the previous parent pointer
+	addi $sp, $sp, 4
+	jr $ra
+
+
+blip_first_digit:
+	jr $ra
+
+blip_second_digit:
+	jr $ra
+
+blip_third_digit:
+	jr $ra
+
+
+blip_zero:
+	jr $ra
+blip_one:
+	jr $ra
+blip_twp:
+	jr $ra
+blip_three:
+	jr $ra
+blip_four:
+	jr $ra
+blip_five:
+	jr $ra
+blip_six:
+	jr $ra
+blip_seven:
+	jr $ra
+blip_eight:
+	jr $ra
+blip_nine:
+	jr $ra
+	
+
+
 		
 game_loop:
-	# draw the doodle
+	# Draw the doodle
 	jal erase_doodle
 	add $t0, $zero, $zero
 	
+	#jal display_score 
 	jal update_doodle_position_user 
 	jal update_doodle_position_auto # Up down auto movement
 	jal check_hit_ground  # will check if the doodle has hit the ground in which case the doodle loss
@@ -480,6 +564,10 @@ set_shift_platforms_bool:
 	sw $ra, 0($sp) # need to keep the previous parent pointer
  	jal modify_stepsArray # will remove last element, shift other two and add a new element in the 0th index
  	
+ 	lw $t0, score
+ 	addi $t0, $t0, 1 # plus 1 to the score
+ 	sw $t0, score # have to increment the score
+ 	
  	lw $ra, 0($sp) # restore the previous parent pointer
 	addi $sp, $sp, 4
 	jr $ra 
@@ -633,9 +721,12 @@ sleep:
 Exit:	
 	lw $t0, displayAddressStart # temp vars so that we can paint entire bitmap
 	lw $t1, displayAddressEnd
-	#jal paint_background # will remove the platforms
-	
 	jal game_over
+	
+	#lw $a0, score
+	#li $v0, 1
+	#syscall
+	
 	li $v0, 10 # terminate the program gracefully
 	syscall	
 	
