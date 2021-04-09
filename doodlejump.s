@@ -978,16 +978,11 @@ sleep:
  	syscall
  	jr $ra
  	
-	
- 		 	 
+	 	 
 Exit:	
 	lw $t0, displayAddressStart # temp vars so that we can paint entire bitmap
 	lw $t1, displayAddressEnd
 	jal game_over
-	
-	#lw $a0, score
-	#li $v0, 1
-	#syscall
 	
 	li $v0, 10 # terminate the program gracefully
 	syscall	
