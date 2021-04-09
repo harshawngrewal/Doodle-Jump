@@ -1,4 +1,3 @@
-
 # Bitmap Display Configuration:
 # - Unit width in pixels: 8					     
 # - Unit height in pixels: 8
@@ -8,35 +7,12 @@
 # - 32 units per row = 128 bytes
 
 .data
-	digit_1:  
-	0x10008070, 0x10008074, 0x10008078, 
-	0x100080F0,             0x10008170,
-	           0x10008174, 
-	0x100080F8,             0x10008178
-	0x100081F0,             0x100081F8
-	0x10008270,             0x10008278
-		   0x10008274
+	digit_1:  .word 0x10008070
+	
 		   
-	digit_2:
+	digit_2: .word 0x10008060
 	
-	0x10008070, 0x10008074, 0x10008078, 
-	0x100080F0,             0x10008170,
-	           0x10008174, 
-	0x100080F8,             0x10008178
-	0x100081F0,             0x100081F8
-	0x10008270,             0x10008278
-		   0x10008274
-	
-	digit_3:
-	
-	0x10008070, 0x10008074, 0x10008078, 
-	0x100080F0,             0x10008170,
-	           0x10008174, 
-	0x100080F8,             0x10008178
-	0x100081F0,             0x100081F8
-	0x10008270,             0x10008278
-		   0x10008274
-	
+	digit_3:.word 0x10008050
 	
 	score: .word 0 # will keep track of score and then display it
 	
@@ -93,13 +69,13 @@
 
 	shift_platforms_bool:	.word 0 			 
 .text 
-	li $s1, 0x87ceeb	# $t1 stores the red colour code
-	li $s2, 0xffffff	# $t2 stores the green colour code
-	li $s4 	0xff0000
+	li $s1, 0x87ceeb	# $s1 stores the blue colour code
+	li $s2, 0xffffff	# $s2 stores the white colour code
+	li $s4 	0xff0000	# $s4 stores the white colour code
 		
 	
 main:
-
+	
 	# This part is just for the intial set up of our screen
 	# Set the sleep time(keep it low)
 	add $t0, $zero, 70
@@ -108,6 +84,8 @@ main:
 	lw $t0, displayAddressStart # temp vars so that we can paint entire bitmap
 	lw $t1, displayAddressEnd
 	jal paint_background
+	
+	jal display_score
 	
 	add $t0, $zero, $zero # Will act as pointer to our array
 	addi $t1, $zero, 12 # Will let us know the end pointer in our array
@@ -118,7 +96,7 @@ main:
 	add $t0, $zero, $zero # Will act as pointer to our array
 	addi $t1, $zero, 24 # Will let us know the end pointer in our array
 	la $t2, personArray
-	
+	 
 	j game_loop
 
 	
@@ -149,63 +127,11 @@ generate_steps:
 	bne $t0, $t1, generate_steps
 	jr $ra 
 
-
-display_score:
-	addi $sp, $sp, -4
-	sw $ra, 0($sp) # need to keep the previous parent pointer
-	addi $a0, $zero 52
-	lw $a1, score
-	
-	jal blip_first_digit
-	jal blip_second_digit
-	jal blip_third_digit
-	
-	
-	lw $ra, 0($sp) # restore the previous parent pointer
-	addi $sp, $sp, 4
-	jr $ra
-
-
-blip_first_digit:
-	jr $ra
-
-blip_second_digit:
-	jr $ra
-
-blip_third_digit:
-	jr $ra
-
-
-blip_zero:
-	jr $ra
-blip_one:
-	jr $ra
-blip_twp:
-	jr $ra
-blip_three:
-	jr $ra
-blip_four:
-	jr $ra
-blip_five:
-	jr $ra
-blip_six:
-	jr $ra
-blip_seven:
-	jr $ra
-blip_eight:
-	jr $ra
-blip_nine:
-	jr $ra
-	
-
-
 		
 game_loop:
 	# Draw the doodle
 	jal erase_doodle
 	add $t0, $zero, $zero
-	
-	#jal display_score 
 	jal update_doodle_position_user 
 	jal update_doodle_position_auto # Up down auto movement
 	jal check_hit_ground  # will check if the doodle has hit the ground in which case the doodle loss
@@ -245,6 +171,335 @@ game_loop:
 	
 	jal sleep
 	j game_loop
+	
+
+
+display_score:
+	addi $sp, $sp, -4
+	sw $ra, 0($sp) # need to keep the previous parent pointer
+	lw $a1, score
+	
+	jal blip_first_digit
+	jal blip_second_digit
+	jal blip_third_digit
+	
+	
+	lw $ra, 0($sp) # restore the previous parent pointer
+	addi $sp, $sp, 4
+	jr $ra
+
+
+blip_first_digit:
+	li $t0, 10
+	div $a1, $t0
+	mfhi $t0 # this will be the digit we want to blip
+	mflo $a1 # update this 
+	
+	la $a2, digit_1
+
+	
+	beq $t0  0, blip_zero
+	beq $t0, 1, blip_one
+	beq $t0, 2, blip_two
+	beq $t0, 3, blip_three
+	beq $t0, 4, blip_four
+	beq $t0, 5, blip_five
+	beq $t0, 6, blip_six
+	beq $t0, 7, blip_seven
+	beq $t0, 8, blip_eight
+	beq $t0, 9, blip_nine
+	
+	
+	jr $ra
+
+blip_second_digit:
+	li $t0, 10
+	div $a1, $t0
+	mfhi $t0 # this will be the digit we want to blip
+	mflo $a1 # update this 
+	
+	la $a2, digit_2
+	
+	lw $t1, score
+	li $t2, 9
+	ble $t1, $t2 blip_clear
+
+	
+	
+	beq $t0  0, blip_zero
+	beq $t0, 1, blip_one
+	beq $t0, 2, blip_two
+	beq $t0, 3, blip_three
+	beq $t0, 4, blip_four
+	beq $t0, 5, blip_five
+	beq $t0, 6, blip_six
+	beq $t0, 7, blip_seven
+	beq $t0, 8, blip_eight
+	beq $t0, 9, blip_nine
+	
+	
+	jr $ra
+
+blip_third_digit:
+	li $t0, 10
+	div $a1, $t0
+	mfhi $t0 # this will be the digit we want to blip
+	mflo $a1 # update this 
+	
+	la $a2, digit_3
+	
+	lw $t1, score
+	li $t2, 99
+	ble $t1, $t2 blip_clear
+	
+	beq $t0  0, blip_zero
+	beq $t0, 1, blip_one
+	beq $t0, 2, blip_two
+	beq $t0, 3, blip_three
+	beq $t0, 4, blip_four
+	beq $t0, 5, blip_five
+	beq $t0, 6, blip_six
+	beq $t0, 7, blip_seven
+	beq $t0, 8, blip_eight
+	beq $t0, 9, blip_nine
+	
+	jr $ra
+	
+blip_clear:
+	lw $t0, 0($a2)
+	
+	sw $s1, 0($t0)
+	sw $s1, 128($t0)
+	sw $s1, 256($t0)
+	sw $s1, 384($t0)
+	sw $s1, 512($t0) 
+	sw $s1, 516($t0) 
+	
+	sw $s1, 4($t0)
+	
+	sw $s1, 8($t0)
+	sw $s1, 136($t0)
+	sw $s1, 260($t0)
+	sw $s1, 264($t0)
+	sw $s1, 392($t0)
+	sw $s1, 520($t0)
+	
+	jr $ra
+
+	
+blip_zero:
+	lw $t0, 0($a2)
+	
+	sw $s4, 0($t0)
+	sw $s4, 128($t0)
+	sw $s4, 256($t0)
+	sw $s4, 384($t0)
+	sw $s4, 512($t0) 
+	sw $s4, 516($t0) 
+	
+	sw $s4, 4($t0)
+	
+	sw $s4, 8($t0)
+	sw $s4, 136($t0)
+	sw $s1, 260($t0)
+	sw $s4, 264($t0)
+	sw $s4, 392($t0)
+	sw $s4, 520($t0)
+	
+	jr $ra
+
+	
+blip_one:
+	lw $t0, 0($a2)
+	
+	sw $s4, 0($t0)
+	sw $s4, 128($t0)
+	sw $s4, 256($t0)
+	sw $s4, 384($t0)
+	sw $s4, 512($t0) 
+	sw $s1, 516($t0) 
+	
+	sw $s1, 4($t0)
+	
+	sw $s1, 8($t0)
+	sw $s1, 136($t0)
+	sw $s1, 260($t0)
+	sw $s1, 264($t0)
+	sw $s1, 392($t0)
+	sw $s1, 520($t0)
+	
+	jr $ra
+	
+blip_two:
+	lw $t0, 0($a2)
+	
+	sw $s4, 0($t0)
+	sw $s1, 128($t0)
+	sw $s4, 256($t0)
+	sw $s4, 384($t0)
+	sw $s4, 512($t0) 
+	sw $s4, 516($t0) 
+	
+	sw $s4, 4($t0)
+	
+	sw $s4, 8($t0)
+	sw $s4, 136($t0)
+	sw $s4, 260($t0)
+	sw $s4, 264($t0)
+	sw $s1, 392($t0)
+	sw $s4, 520($t0)
+	
+	jr $ra
+	
+	
+blip_three:
+	lw $t0, 0($a2)
+	
+	sw $s4, 0($t0)
+	sw $s1, 128($t0)
+	sw $s4, 256($t0)
+	sw $s1, 384($t0)
+	sw $s4, 512($t0) 
+	sw $s4, 516($t0) 
+	
+	sw $s4, 4($t0)
+	
+	sw $s4, 8($t0)
+	sw $s4, 136($t0)
+	sw $s4, 260($t0)
+	sw $s4, 264($t0)
+	sw $s4, 392($t0)
+	sw $s4, 520($t0)
+	
+	jr $ra
+	
+	
+blip_four:
+	lw $t0, 0($a2)
+	
+	sw $s4, 0($t0)
+	sw $s4, 128($t0)
+	sw $s4, 256($t0)
+	sw $s1, 384($t0)
+	sw $s1, 512($t0) 
+	sw $s1, 516($t0) 
+	
+	sw $s1, 4($t0)
+	
+	sw $s4, 8($t0)
+	sw $s4, 136($t0)
+	sw $s4, 260($t0)
+	sw $s4, 264($t0)
+	sw $s4, 392($t0)
+	sw $s4, 520($t0)
+	
+	jr $ra
+	
+	
+blip_five:
+	lw $t0, 0($a2)
+	
+	sw $s4, 0($t0)
+	sw $s4, 128($t0)
+	sw $s4, 256($t0)
+	sw $s1, 384($t0)
+	sw $s4, 512($t0) 
+	sw $s4, 516($t0) 
+	
+	sw $s4, 4($t0)
+	
+	sw $s4, 8($t0)
+	sw $s1, 136($t0)
+	sw $s4, 260($t0)
+	sw $s4, 264($t0)
+	sw $s4, 392($t0)
+	sw $s4, 520($t0)
+	
+	jr $ra
+	
+blip_six:
+	lw $t0, 0($a2)
+	
+	sw $s4, 0($t0)
+	sw $s4, 128($t0)
+	sw $s4, 256($t0)
+	sw $s4, 384($t0)
+	sw $s4, 512($t0) 
+	sw $s4, 516($t0) 
+	
+	sw $s4, 4($t0)
+	
+	sw $s4, 8($t0)
+	sw $s1, 136($t0)
+	sw $s4, 260($t0)
+	sw $s4, 264($t0)
+	sw $s4, 392($t0)
+	sw $s4, 520($t0)
+	
+	jr $ra
+blip_seven:
+	lw $t0, 0($a2)
+	
+	sw $s4, 0($t0)
+	sw $s1, 128($t0)
+	sw $s1, 256($t0)
+	sw $s1, 384($t0)
+	sw $s1, 512($t0) 
+	sw $s1, 516($t0) 
+	
+	sw $s4, 4($t0)
+	
+	sw $s4, 8($t0)
+	sw $s4, 136($t0)
+	sw $s1, 260($t0)
+	sw $s4, 264($t0)
+	sw $s4, 392($t0)
+	sw $s4, 520($t0)
+	
+	jr $ra
+	
+	
+blip_eight:
+	lw $t0, 0($a2)
+	
+	sw $s4, 0($t0)
+	sw $s4, 128($t0)
+	sw $s4, 256($t0)
+	sw $s4, 384($t0)
+	sw $s4, 512($t0) 
+	sw $s4, 516($t0) 
+	
+	sw $s4, 4($t0)
+	
+	sw $s4, 8($t0)
+	sw $s4, 136($t0)
+	sw $s4, 260($t0)
+	sw $s4, 264($t0)
+	sw $s4, 392($t0)
+	sw $s4, 520($t0)
+	
+	jr $ra
+	
+blip_nine:
+	lw $t0, 0($a2)
+	
+	sw $s4, 0($t0)
+	sw $s4, 128($t0)
+	sw $s4, 256($t0)
+	sw $s1, 384($t0)
+	sw $s4, 512($t0) 
+	sw $s4, 516($t0) 
+	
+	sw $s4, 4($t0)
+	
+	sw $s4, 8($t0)
+	sw $s4, 136($t0)
+	sw $s4, 260($t0)
+	sw $s4, 264($t0)
+	sw $s4, 392($t0)
+	sw $s4, 520($t0)
+	
+	jr $ra
 	
 
 play_music:
@@ -333,8 +588,8 @@ blip_doodle:
 	
 update_doodle_position_user:	
 	# going to check for input
-	li $t1, 97
-	li $t2, 100
+	li $t1, 106
+	li $t2, 107
 
 	lw $s3, keyboardEvent # load in the address
 	lw $t0, 0($s3) # get's the value at the address
@@ -663,6 +918,13 @@ shift_platforms:
 	addi $t0, $t0, 4
 	bne $t1, $t0, shift_platforms
 	
+	addi $sp, $sp, -4
+	sw $ra, 0($sp) # need to keep the previous parent pointer
+	jal display_score # this is the only time we update the score display
+	lw $ra, 0($sp) # restore the previous parent pointer
+	addi $sp, $sp, 4
+	
+	
 	jr $ra # done shifting once
 		
 game_over:
@@ -731,4 +993,3 @@ Exit:
 	syscall	
 	
 	
-
